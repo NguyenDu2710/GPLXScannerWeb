@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3f51b5">
+<title>Quét CCCD / GPLX</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app"><p style="text-align:center;margin-top:40px;">Đang tải...</p></div>
+
+<!-- Thư viện ngoài (qua CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<!-- Module logic thuần (không phụ thuộc DOM), thứ tự phải đúng vì mỗi file
+     gắn tiếp vào chung 1 namespace window.App -->
+<script src="js/vietnamese-text-utils.js"></script>
+<script src="js/person.js"></script>
+<script src="js/cccd-parser.js"></script>
+<script src="js/gplx-parser.js"></script>
+<script src="js/dvhc-converter.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/google-form.js"></script>
+<script src="js/apps-script-sheet.js"></script>
+<script src="js/export.js"></script>
+<script src="js/camera.js"></script>
+<script src="js/toast.js"></script>
+
+<!-- Bộ điều khiển chính + giao diện -->
+<script src="js/app.js"></script>
+</body>
+</html>
