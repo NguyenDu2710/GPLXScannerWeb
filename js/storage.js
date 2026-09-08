@@ -33,15 +33,15 @@
     }
   }
 
-  // ---- Phiên "đăng nhập" (tên người dùng + chi nhánh) ----
+  // ---- Phiên "đăng nhập" (tên Sale) ----
   function loadSession() {
-    return readJson(KEYS.session, { userName: '', branch: '' });
+    return readJson(KEYS.session, { saleName: '' });
   }
   function saveSession(session) {
     writeJson(KEYS.session, session);
   }
   function isSessionValid(session) {
-    return !!(session && session.userName && session.userName.trim() && session.branch && session.branch.trim());
+    return !!(session && session.saleName && session.saleName.trim());
   }
 
   // ---- Danh sách người đã quét ----

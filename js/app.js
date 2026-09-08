@@ -6,7 +6,7 @@
   'use strict';
 
   const state = {
-    session: { userName: '', branch: '' },
+    session: { saleName: '' },
     people: [],
     awaitingGplxId: null,
     formSettings: { formResponseUrl: '', entryIdByColumn: {} },
@@ -75,18 +75,16 @@
 
   function renderLogin(params) {
     const isEditing = !!params.isEditing;
-    const prefill = params.session || { userName: '', branch: '' };
+    const prefill = params.session || { saleName: '' };
     return (
       '<div class="screen login-screen"><div class="login-card">' +
       (isEditing
-        ? '<h1>Đổi người dùng / chi nhánh</h1>'
+        ? '<h1>Đổi tên Sale</h1>'
         : '<div class="login-icon">📷</div><h1>Quét CCCD / GPLX</h1>' +
-          '<p class="muted">Nhập tên người dùng và chi nhánh trước khi bắt đầu quét.</p>') +
+          '<p class="muted">Nhập tên Sale trước khi bắt đầu quét.</p>') +
       '<form id="login-form">' +
-      '<label>Tên người dùng<input type="text" id="login-username" value="' + esc(prefill.userName) + '"></label>' +
-      '<div class="field-error" id="err-username" hidden>Bắt buộc nhập</div>' +
-      '<label>Chi nhánh<input type="text" id="login-branch" value="' + esc(prefill.branch) + '"></label>' +
-      '<div class="field-error" id="err-branch" hidden>Bắt buộc nhập</div>' +
+      '<label>Tên Sale<input type="text" id="login-salename" value="' + esc(prefill.saleName) + '"></label>' +
+      '<div class="field-error" id="err-salename" hidden>Bắt buộc nhập</div>' +
       '<div class="actions">' +
       (isEditing ? '<button type="button" id="login-cancel" class="btn btn-outline">Hủy</button>' : '') +
       '<button type="submit" class="btn btn-primary">' + (isEditing ? 'Lưu' : 'Bắt đầu') + '</button>' +
@@ -98,16 +96,14 @@
     const isEditing = !!params.isEditing;
     $('#login-form').addEventListener('submit', function (ev) {
       ev.preventDefault();
-      const userName = $('#login-username').value.trim();
-      const branch = $('#login-branch').value.trim();
-      $('#err-username').hidden = !!userName;
-      $('#err-branch').hidden = !!branch;
-      if (!userName || !branch) return;
-      const session = { userName: userName, branch: branch };
+      const saleName = $('#login-salename').value.trim();
+      $('#err-salename').hidden = !!saleName;
+      if (!saleName) return;
+      const session = { saleName: saleName };
       App.Storage.saveSession(session);
       state.session = session;
       if (isEditing) {
-        App.showToast('Đã lưu thông tin người dùng.');
+        App.showToast('Đã lưu tên Sale.');
       }
       render('home');
     });
@@ -124,9 +120,7 @@
     const gplxLine = App.Person.hasGplx(p)
       ? 'GPLX: ' + esc(p.gplxNumber.split('|').join(', '))
       : 'Chưa có GPLX';
-    const courseLine = p.courseClass
-      ? ' • Khóa ' + esc(p.courseClass) + (p.courseBatch ? ' (' + esc(p.courseBatch) + ')' : '')
-      : '';
+    const courseLine = p.course ? ' • Khóa ' + esc(p.course) : '';
     const initial = (p.fullName || '?').trim().charAt(0).toUpperCase() || '?';
     return (
       '<div class="person-row" data-id="' + esc(p.id) + '">' +
@@ -153,9 +147,9 @@
       '<div class="screen home-screen">' +
       '<header class="app-header">' +
       '<div><h1>Quét CCCD / GPLX</h1>' +
-      '<div class="muted small">' + esc(state.session.userName) + ' • ' + esc(state.session.branch) + '</div></div>' +
+      '<div class="muted small">' + esc(state.session.saleName) + '</div></div>' +
       '<div class="header-actions">' +
-      '<button id="btn-switch-user" class="icon-btn" title="Đổi người dùng/chi nhánh">👤</button>' +
+      '<button id="btn-switch-user" class="icon-btn" title="Đổi tên Sale">👤</button>' +
       '<button id="btn-sheet-settings" class="icon-btn" title="Kết nối Google Sheet">' + (configured ? '☁️✅' : '☁️') + '</button>' +
       '</div></header>' +
       '<div class="scan-buttons">' +
@@ -431,8 +425,7 @@
         courseBatch: $('#f-course-batch').value.trim(),
         phoneNumber: $('#f-phone').value.trim(),
         tuitionPaid: $('#f-tuition').value.trim(),
-        scannedByUser: state.session.userName,
-        branch: state.session.branch,
+        scannedByUser: state.session.saleName,
       });
       state.people.unshift(person);
       state.awaitingGplxId = person.id;

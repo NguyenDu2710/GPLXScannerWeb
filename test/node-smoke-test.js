@@ -117,11 +117,11 @@ test('Person.mergeGplx: gán trực tiếp lần đầu, nối "|" lần 2', () 
 });
 
 test('Person.toRow/toColumnValueMap: đúng số cột và ánh xạ', () => {
-  const p = App.Person.create({ cccdNumber: '001', fullName: 'A', dateOfBirth: '01/01/2000', branch: 'CN1' });
+  const p = App.Person.create({ cccdNumber: '001', fullName: 'A', dateOfBirth: '01/01/2000', scannedByUser: 'Sale A' });
   const row = App.Person.toRow(p);
   assert.strictEqual(row.length, App.Person.COLUMNS.length);
   const map = App.Person.toColumnValueMap(p);
-  assert.strictEqual(map['Chi nhánh'], 'CN1');
+  assert.strictEqual(map['Sale'], 'Sale A');
   assert.strictEqual(map['Số CCCD'], '001');
 });
 

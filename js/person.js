@@ -4,26 +4,32 @@
   'use strict';
 
   const PERSON_COLUMNS = [
-    'Chi nhánh',
-    'Người quét',
+    'Sale',
     'Số CCCD',
     'Họ và tên',
     'Ngày sinh',
     'Giới tính',
     'Địa chỉ',
     'Ngày cấp CCCD',
-    'Hạng đăng ký',
-    'Mã lớp',
+    'Khóa',
     'Số điện thoại',
     'Học phí đã đóng',
     'Số GPLX',
     'Hạng GPLX',
     'Ngày cấp GPLX',
-    'GPLX có giá trị đến',
-    'Thời gian quét',
+    'Ngày hết hạn GPLX',
   ];
 
   const COURSE_CLASS_OPTIONS = ['A', 'A1', 'B.01', 'B', 'C1', 'BC', 'BD2', 'C1D2'];
+
+  // Gộp "hạng đăng ký" (dropdown) + "mã lớp" (nhập tay) thành 1 giá trị "Khóa"
+  // duy nhất lúc lưu, ví dụ: "A1 (K24)".
+  function formatCourse(courseClass, courseBatch) {
+    const cls = (courseClass || '').trim();
+    const batch = (courseBatch || '').trim();
+    if (cls && batch) return cls + ' (' + batch + ')';
+    return cls || batch;
+  }
 
   let idCounter = 0;
   function nextId() {
@@ -42,9 +48,8 @@
       gender: fields.gender || '',
       address: fields.address || '',
       cccdIssueDate: fields.cccdIssueDate || '',
-      // Đăng ký khóa học (nhập tay)
-      courseClass: fields.courseClass || '',
-      courseBatch: fields.courseBatch || '',
+      // Đăng ký khóa học (nhập tay) - gộp hạng đăng ký + mã lớp thành 1 ô "Khóa"
+      course: fields.course != null ? fields.course : formatCourse(fields.courseClass, fields.courseBatch),
       phoneNumber: fields.phoneNumber || '',
       tuitionPaid: fields.tuitionPaid || '',
       // GPLX (gắn thêm sau, tùy chọn)
@@ -52,9 +57,8 @@
       gplxClass: fields.gplxClass || '',
       gplxIssueDate: fields.gplxIssueDate || '',
       gplxExpiryDate: fields.gplxExpiryDate || '',
-      // Người dùng đã đăng nhập lúc quét
+      // Sale đã đăng nhập lúc quét
       scannedByUser: fields.scannedByUser || '',
-      branch: fields.branch || '',
       scannedAt: fields.scannedAt || new Date().toISOString(),
       sentToSheet: !!fields.sentToSheet,
     };
@@ -97,7 +101,6 @@
 
   function personToRow(p) {
     return [
-      p.branch,
       p.scannedByUser,
       p.cccdNumber,
       p.fullName,
@@ -105,15 +108,13 @@
       p.gender,
       p.address,
       p.cccdIssueDate,
-      p.courseClass,
-      p.courseBatch,
+      p.course,
       p.phoneNumber,
       p.tuitionPaid,
       p.gplxNumber,
       p.gplxClass,
       p.gplxIssueDate,
       p.gplxExpiryDate,
-      formatScannedAt(p.scannedAt),
     ];
   }
 
