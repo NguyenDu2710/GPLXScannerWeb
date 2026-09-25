@@ -252,6 +252,15 @@ label input:focus, label select:focus, label textarea:focus {
   background: rgba(0,0,0,0.6);
 }
 .camera-hint.error { color: #ff8a80; }
+.camera-zoom-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(0,0,0,0.6);
+  font-size: 0.85rem;
+}
+.camera-zoom { flex: 1; }
 .target-banner {
   text-align: center;
   padding: 8px 12px;

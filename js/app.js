@@ -296,9 +296,30 @@
       '<span>' + esc(title) + '</span><span class="spacer"></span>' +
       '</div>' +
       '<div class="camera-viewport"><video id="' + idPrefix + '-video" playsinline muted autoplay></video></div>' +
+      '<div class="camera-zoom-row" id="' + idPrefix + '-zoom-row" hidden>' +
+      '🔍<input type="range" id="' + idPrefix + '-zoom" class="camera-zoom">🔍' +
+      '</div>' +
       '<div class="camera-hint" id="' + idPrefix + '-hint">' + esc(hintText) + '</div>' +
       '</div>'
     );
+  }
+
+  // Hiện thanh trượt zoom camera nếu thiết bị hỗ trợ (chủ yếu Chrome
+  // Android) - giúp phóng to vùng có QR nhỏ (VD QR mặt trước CCCD gắn chip)
+  // mà không cần đưa điện thoại sát tới mức camera không lấy nét được.
+  function wireZoomControl(idPrefix, track) {
+    const range = App.Camera.getZoomRange(track);
+    if (!range) return;
+    const row = $('#' + idPrefix + '-zoom-row');
+    const slider = $('#' + idPrefix + '-zoom');
+    row.hidden = false;
+    slider.min = range.min;
+    slider.max = range.max;
+    slider.step = range.step;
+    slider.value = range.min;
+    slider.addEventListener('input', function () {
+      App.Camera.setZoom(track, Number(slider.value));
+    });
   }
 
   // ===========================================================
@@ -355,6 +376,7 @@
       })
       .then(function () {
         if (cancelled) return;
+        wireZoomControl('cccd', stream.getVideoTracks()[0]);
         startScanLoop();
       })
       .catch(function (err) {

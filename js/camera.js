@@ -36,10 +36,25 @@
     }
   }
 
+  // BarcodeDetector là API quét mã vạch/QR có sẵn của trình duyệt, chạy
+  // bằng engine nhận diện của hệ điều hành (VD ML Kit trên Chrome Android) -
+  // đọc được QR nhỏ/mờ/xa tốt hơn hẳn so với jsQR (thư viện JS thuần, tự
+  // decode từng pixel). Hiện chỉ Chrome/Edge (desktop + Android) hỗ trợ,
+  // Safari/Firefox chưa có -> luôn cần jsQR làm phương án dự phòng.
+  function createNativeDetector() {
+    if (typeof BarcodeDetector === 'undefined') return null;
+    try {
+      return new BarcodeDetector({ formats: ['qr_code'] });
+    } catch (e) {
+      return null;
+    }
+  }
+
   // Quét QR liên tục từ khung hình camera cho tới khi tìm thấy mã hoặc bị
   // dừng. Trả về 1 "controller" có hàm stop() để huỷ vòng lặp giữa chừng.
   function startQrScan(videoEl, onDetect, onError) {
-    if (typeof jsQR === 'undefined') {
+    let detector = createNativeDetector();
+    if (!detector && typeof jsQR === 'undefined') {
       onError && onError(new Error('Chưa tải được thư viện quét QR (jsQR). Kiểm tra kết nối mạng rồi thử lại.'));
       return { stop: function () {} };
     }
@@ -47,27 +62,65 @@
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     let stopped = false;
     let rafId = null;
+    let nativeBusy = false;
+
+    function scanWithJsQr() {
+      if (typeof jsQR === 'undefined') return null;
+      canvas.width = videoEl.videoWidth;
+      canvas.height = videoEl.videoHeight;
+      ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      try {
+        const result = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: 'dontInvert',
+        });
+        return result && result.data ? result.data : null;
+      } catch (e) {
+        // Bỏ qua lỗi decode 1 khung hình lẻ, thử tiếp khung sau.
+        return null;
+      }
+    }
 
     function tick() {
       if (stopped) return;
-      if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA) {
-        canvas.width = videoEl.videoWidth;
-        canvas.height = videoEl.videoHeight;
-        ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        let result = null;
-        try {
-          result = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: 'dontInvert',
-          });
-        } catch (e) {
-          // Bỏ qua lỗi decode 1 khung hình lẻ, thử tiếp khung sau.
-        }
-        if (result && result.data) {
-          stopped = true;
-          onDetect(result.data);
+      if (videoEl.readyState !== videoEl.HAVE_ENOUGH_DATA) {
+        rafId = requestAnimationFrame(tick);
+        return;
+      }
+
+      if (detector) {
+        if (nativeBusy) {
+          rafId = requestAnimationFrame(tick);
           return;
         }
+        nativeBusy = true;
+        detector.detect(videoEl)
+          .then(function (codes) {
+            nativeBusy = false;
+            if (stopped) return;
+            const value = codes && codes[0] && codes[0].rawValue;
+            if (value) {
+              stopped = true;
+              onDetect(value);
+              return;
+            }
+            rafId = requestAnimationFrame(tick);
+          })
+          .catch(function () {
+            // Trình duyệt khai báo có BarcodeDetector nhưng không thực sự
+            // hỗ trợ 'qr_code' (hoặc lỗi khác) -> chuyển hẳn sang jsQR.
+            nativeBusy = false;
+            detector = null;
+            if (!stopped) rafId = requestAnimationFrame(tick);
+          });
+        return;
+      }
+
+      const text = scanWithJsQr();
+      if (text) {
+        stopped = true;
+        onDetect(text);
+        return;
       }
       rafId = requestAnimationFrame(tick);
     }
@@ -80,6 +133,27 @@
         if (rafId) cancelAnimationFrame(rafId);
       },
     };
+  }
+
+  // Lấy khoảng zoom camera hỗ trợ (nếu có) để hiển thị thanh trượt zoom -
+  // giúp phóng to vùng chứa QR nhỏ (VD mã QR mặt trước CCCD gắn chip) mà
+  // không cần đưa điện thoại sát tới mức camera không lấy nét được. Chỉ
+  // một số trình duyệt/thiết bị hỗ trợ (chủ yếu Chrome Android).
+  function getZoomRange(track) {
+    if (!track || typeof track.getCapabilities !== 'function') return null;
+    let caps;
+    try {
+      caps = track.getCapabilities();
+    } catch (e) {
+      return null;
+    }
+    if (!caps || !caps.zoom) return null;
+    return { min: caps.zoom.min, max: caps.zoom.max, step: caps.zoom.step || 0.1 };
+  }
+
+  function setZoom(track, value) {
+    if (!track || typeof track.applyConstraints !== 'function') return Promise.resolve();
+    return track.applyConstraints({ advanced: [{ zoom: value }] }).catch(function () {});
   }
 
   // Chụp 1 khung hình hiện tại của video thành canvas (dùng cho GPLX: vừa
@@ -98,6 +172,8 @@
     stopStream: stopStream,
     attachToVideo: attachToVideo,
     startQrScan: startQrScan,
+    getZoomRange: getZoomRange,
+    setZoom: setZoom,
     captureFrameToCanvas: captureFrameToCanvas,
   };
 })(window.App = window.App || {});
