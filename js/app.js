@@ -59,7 +59,7 @@
     switch (view) {
       case 'login': app.innerHTML = renderLogin(params || {}); wireLogin(params || {}); break;
       case 'home': app.innerHTML = renderHome(); wireHome(); break;
-      case 'cccdScan': app.innerHTML = renderCameraShell('cccd', 'Quét QR mặt sau CCCD', 'Đưa mã QR ở mặt sau thẻ CCCD gắn chip vào khung hình'); wireCccdScan(); break;
+      case 'cccdScan': app.innerHTML = renderCameraShell('cccd', 'Quét QR CCCD', 'Đưa mặt thẻ CCCD có mã QR vào khung hình, giữ gần & nét (mã QR càng lớn trong khung càng dễ đọc)'); wireCccdScan(); break;
       case 'cccdConfirm': app.innerHTML = renderCccdConfirm(params.record); wireCccdConfirm(params.record); break;
       case 'gplxScan': app.innerHTML = renderGplxScan(params); wireGplxScan(params); break;
       case 'gplxConfirm': app.innerHTML = renderGplxConfirm(params); wireGplxConfirm(params); break;
@@ -272,6 +272,22 @@
   // KHUNG CAMERA DÙNG CHUNG (CCCD & GPLX)
   // ===========================================================
 
+  // Mã QR ở mặt trước CCCD gắn chip mã hoá rất nhiều dữ liệu (mật độ điểm
+  // ảnh cao) và thường chỉ chiếm một góc nhỏ của thẻ trong khung hình, nên
+  // cần độ phân giải camera cao hơn mặc định của trình duyệt (thường chỉ
+  // 640x480) thì jsQR mới đọc được. Yêu cầu độ phân giải cao (trình duyệt
+  // sẽ tự hạ xuống mức thiết bị hỗ trợ nếu không đạt được "ideal").
+  function cameraConstraints() {
+    return {
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      },
+      audio: false,
+    };
+  }
+
   function renderCameraShell(idPrefix, title, hintText) {
     return (
       '<div class="screen camera-screen">' +
@@ -317,7 +333,10 @@
         function (text) {
           const record = App.CccdParser.parse(text);
           if (!record) {
-            hint.textContent = 'Mã QR không đúng định dạng CCCD. Đang quét tiếp...';
+            console.warn('[CCCD QR] Không parse được, nội dung thô đọc được:', text);
+            hint.textContent =
+              'Mã QR không đúng định dạng CCCD. Đang quét tiếp... ' +
+              '(nội dung đọc được: ' + text.slice(0, 80) + (text.length > 80 ? '…' : '') + ')';
             hint.classList.add('error');
             if (!cancelled) startScanLoop();
             return;
@@ -328,7 +347,7 @@
       );
     }
 
-    App.Camera.startStream({ video: { facingMode: { ideal: 'environment' } }, audio: false })
+    App.Camera.startStream(cameraConstraints())
       .then(function (s) {
         if (cancelled) { App.Camera.stopStream(s); return; }
         stream = s;
@@ -482,7 +501,7 @@
       App.Camera.stopStream(stream);
     };
 
-    App.Camera.startStream({ video: { facingMode: { ideal: 'environment' } }, audio: false })
+    App.Camera.startStream(cameraConstraints())
       .then(function (s) {
         if (cancelled) { App.Camera.stopStream(s); return; }
         stream = s;
